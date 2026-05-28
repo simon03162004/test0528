@@ -65,11 +65,24 @@ const ALL_TILES = [
   '1m','2m','3m','4m','5m','6m','7m','8m','9m',
   '1p','2p','3p','4p','5p','6p','7p','8p','9p',
   '1s','2s','3s','4s','5s','6s','7s','8s','9s',
-  'E','S','W','N','Z','F','B' // East, South, West, North, Red, Green, White
+  'E','S','W','N','Z','F','B'
 ];
 
-function canWin(tiles) {
-  if (tiles.length !== 17) return false;
+function normalizeTile(raw) {
+  const t = raw.trim();
+  const suited = t.match(/^([1-9])([mMpPsS])$/);
+  if (suited) return `${suited[1]}${suited[2].toLowerCase()}`;
+  const honor = t.toUpperCase();
+  if (["E", "S", "W", "N", "Z", "F", "B"].includes(honor)) return honor;
+  return null;
+}
+
+function parseTiles(input) {
+  return input.trim().split(/\s+/).filter(Boolean).map(normalizeTile).filter(t => t !== null);
+}
+
+function checkWin17(tiles) {
+  if (tiles.length !== 17) return { isWinning: false };
   const counts = {};
   tiles.forEach(t => counts[t] = (counts[t] || 0) + 1);
 
@@ -79,26 +92,30 @@ function canWin(tiles) {
     if (counts[pair] >= 2) {
       const remaining = { ...counts };
       remaining[pair] -= 2;
-      if (canMeld(remaining, 5)) return true;
+      const decomposition = { pair, melds: [] };
+      if (getDecomposition(remaining, 5, decomposition.melds)) {
+        return { isWinning: true, decomposition };
+      }
     }
   }
-  return false;
+  return { isWinning: false };
 }
 
-function canMeld(counts, needed) {
+function getDecomposition(counts, needed, melds) {
   if (needed === 0) return true;
-  
   const tile = ALL_TILES.find(t => counts[t] > 0);
   if (!tile) return needed === 0;
 
-  // Try Triplet (Pong)
+  // Try Triplet
   if (counts[tile] >= 3) {
     counts[tile] -= 3;
-    if (canMeld(counts, needed - 1)) return true;
+    melds.push({ type: 'triplet', tiles: [tile, tile, tile] });
+    if (getDecomposition(counts, needed - 1, melds)) return true;
+    melds.pop();
     counts[tile] += 3;
   }
 
-  // Try Sequence (Chow) - only for m, p, s
+  // Try Sequence
   const num = parseInt(tile[0]);
   const suite = tile[1];
   if (suite && ['m', 'p', 's'].includes(suite) && num <= 7) {
@@ -106,73 +123,130 @@ function canMeld(counts, needed) {
     const t3 = (num + 2) + suite;
     if (counts[t2] > 0 && counts[t3] > 0) {
       counts[tile]--; counts[t2]--; counts[t3]--;
-      if (canMeld(counts, needed - 1)) return true;
+      melds.push({ type: 'sequence', tiles: [tile, t2, t3] });
+      if (getDecomposition(counts, needed - 1, melds)) return true;
+      melds.pop();
       counts[tile]++; counts[t2]++; counts[t3]++;
     }
   }
-
   return false;
 }
 
-function checkTenpai(hand16) {
+function checkTenpai16(hand16) {
   const waits = [];
   ALL_TILES.forEach(tile => {
-    if (canWin([...hand16, tile])) {
+    if (checkWin17([...hand16, tile]).isWinning) {
       waits.push(tile);
     }
   });
   return waits;
 }
 
-// --- Scoring and Advice Engine ---
-function calculateTai(tiles) {
-  if (!canWin(tiles)) return 0;
-  let tai = 0;
+function calculateTai(tiles, decomposition, context = { baseWinTai: true }) {
+  let totalTai = 0;
+  const patterns = [];
   const counts = {};
   tiles.forEach(t => counts[t] = (counts[t] || 0) + 1);
 
-  // Simple Tai Examples (Taiwanese Mahjong)
-  // 1. All Triplets (碰碰胡) - 4 Tai
-  let triplets = 0;
-  Object.values(counts).forEach(c => { if (c >= 3) triplets++; });
-  if (triplets === 5) tai += 4;
+  if (context.baseWinTai) {
+    totalTai += 1;
+    patterns.push({ name: "基本胡", tai: 1, reason: "符合 5 面子 + 1 眼睛結構。" });
+  }
 
-  // 2. Full Flush (清一色) - 8 Tai
+  // 碰碰胡 (4 Tai)
+  const isAllPungs = decomposition.melds.every(m => m.type === 'triplet');
+  if (isAllPungs) {
+    totalTai += 4;
+    patterns.push({ name: "碰碰胡", tai: 4, reason: "所有面子皆為刻子。" });
+  }
+
+  // 平胡 (2 Tai) - 5組順子且無字牌 (簡單判定)
+  const isAllSequences = decomposition.melds.every(m => m.type === 'sequence');
+  if (isAllSequences && !hasHonors) {
+    totalTai += 2;
+    patterns.push({ name: "平胡", tai: 2, reason: "由 5 組順子與 1 對將牌組成，且無字牌。" });
+  }
+
+  // 清一色 (8 Tai) or 混一色 (4 Tai)
   const suites = new Set(tiles.filter(t => t.length === 2).map(t => t[1]));
   const hasHonors = tiles.some(t => t.length === 1);
-  if (suites.size === 1 && !hasHonors) tai += 8;
-
-  // 3. Mixed Terminals (混一色) - 4 Tai
-  if (suites.size === 1 && hasHonors) tai += 4;
-
-  // 4. Little Three Dragons (小三元) - 4 Tai
-  if (counts['Z'] >= 2 && counts['F'] >= 2 && counts['B'] >= 2) {
-    if (counts['Z'] >= 3 || counts['F'] >= 3 || counts['B'] >= 3) tai += 4;
+  if (suites.size === 1) {
+    if (!hasHonors) {
+      totalTai += 8;
+      patterns.push({ name: "清一色", tai: 8, reason: "整副牌僅由一種花色組成。" });
+    } else {
+      totalTai += 4;
+      patterns.push({ name: "混一色", tai: 4, reason: "由一種花色與字牌組成。" });
+    }
   }
-  
-  return tai || 1; // Default 1 Tai for simple win (平胡 not fully checked here)
+
+  // 大三元 (8 Tai) or 小三元 (4 Tai)
+  const dragonCounts = [counts['Z'] || 0, counts['F'] || 0, counts['B'] || 0];
+  if (dragonCounts.every(c => c >= 3)) {
+    totalTai += 8;
+    patterns.push({ name: "大三元", tai: 8, reason: "中、發、白皆為刻子。" });
+  } else if (dragonCounts.filter(c => c >= 3).length === 2 && dragonCounts.some(c => c === 2)) {
+    totalTai += 4;
+    patterns.push({ name: "小三元", tai: 4, reason: "中、發、白其中兩組為刻子，一組為眼睛。" });
+  }
+
+  return { totalTai, patterns };
 }
 
-function getDiscardAdvice(hand17) {
+function recommendBestDiscard(tiles17) {
   let bestDiscard = null;
   let maxWaits = -1;
   let bestWaits = [];
 
-  const uniqueTiles = [...new Set(hand17)];
+  const uniqueTiles = [...new Set(tiles17)];
   uniqueTiles.forEach(tile => {
-    const tempHand = [...hand17];
+    const tempHand = [...tiles17];
     const index = tempHand.indexOf(tile);
     tempHand.splice(index, 1);
-    
-    const waits = checkTenpai(tempHand);
+    const waits = checkTenpai16(tempHand);
     if (waits.length > maxWaits) {
       maxWaits = waits.length;
       bestDiscard = tile;
       bestWaits = waits;
     }
   });
-
   return { discard: bestDiscard, waits: bestWaits };
+}
+
+function analyzeMahjong(input) {
+  const tiles = parseTiles(input);
+  if (tiles.length === 17) {
+    const winResult = checkWin17(tiles);
+    if (winResult.isWinning) {
+      const taiResult = calculateTai(tiles, winResult.decomposition);
+      return {
+        mode: "胡牌與台數分析 (17張)",
+        status: "胡牌",
+        is_winning_hand: true,
+        current_tai: taiResult.totalTai,
+        matched_patterns: taiResult.patterns,
+        decomposition: winResult.decomposition,
+        logic: "此手牌已形成 5 面子 + 1 眼睛，判定為胡牌。"
+      };
+    }
+    const discardResult = recommendBestDiscard(tiles);
+    return {
+      mode: "拆牌與聽牌分析 (17張)",
+      status: "未胡牌",
+      is_winning_hand: false,
+      recommendation: discardResult,
+      logic: "目前 17 張不能胡，分析打哪張後聽牌張數最多。"
+    };
+  } else if (tiles.length === 16) {
+    const waits = checkTenpai16(tiles);
+    return {
+      mode: "聽牌分析 (16張)",
+      status: waits.length > 0 ? "聽牌" : "未聽牌",
+      waiting_tiles: waits,
+      logic: "檢查補入哪一張牌後可達成 5 面子 + 1 眼睛結構。"
+    };
+  }
+  return { error: "張數不正確", message: `請輸入 16 或 17 張手牌 (目前: ${tiles.length} 張)。` };
 }
 
 const tileDisplayMap = {
@@ -287,41 +361,7 @@ startSimBtn.addEventListener('click', () => {
             conclusions: "裁判誤判因素分析摘要、重要變項排序、統計檢定結果、視覺化圖表建議"
           };
         } else if (currentRole === 'tw_mahjong') {
-          const userInput = mahjongHandInput.value.trim().split(/\s+/);
-          
-          if (userInput.length === 16) {
-            // Tenpai Mode
-            const waits = checkTenpai(userInput);
-            dummyResult = {
-              mode: "聽牌分析 (16張)",
-              current_hand: userInput.map(t => tileDisplayMap[t] || t).join(' '),
-              status: waits.length > 0 ? "已聽牌" : "尚未聽牌",
-              winning_tiles: waits.map(t => tileDisplayMap[t]),
-              advice: waits.length > 0 ? "目前已進入聽牌狀態，請等待胡牌。" : "建議重新整理手牌結構，尋找進入聽牌的機會。"
-            };
-          } else if (userInput.length === 17) {
-            // Scoring & Discard Mode
-            const canWinHand = canWin(userInput);
-            const tai = calculateTai(userInput);
-            const advice = getDiscardAdvice(userInput);
-            
-            dummyResult = {
-              mode: "捨牌與台數分析 (17張)",
-              current_hand: userInput.map(t => tileDisplayMap[t] || t).join(' '),
-              is_winning_hand: canWinHand,
-              current_tai: canWinHand ? tai : "尚未胡牌",
-              recommendation: {
-                discard_tile: tileDisplayMap[advice.discard] || advice.discard,
-                results_in_waits: advice.waits.map(t => tileDisplayMap[t]),
-                logic: `打出 ${tileDisplayMap[advice.discard] || advice.discard} 後，將聽 ${advice.waits.length} 種牌。`
-              }
-            };
-          } else {
-            dummyResult = {
-              error: "張數不正確",
-              message: "請輸入 16 張（分析聽牌）或 17 張（分析捨牌與台數）手牌。"
-            };
-          }
+          dummyResult = analyzeMahjong(mahjongHandInput.value);
         } else {
           dummyResult = {
             role: currentRole,
