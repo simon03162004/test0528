@@ -164,6 +164,8 @@ const resultModal = document.getElementById('resultModal');
 const closeModalBtn = document.getElementById('closeModalBtn');
 const resultJson = document.getElementById('resultJson');
 const nodes = document.querySelectorAll('.node');
+const mahjongInputArea = document.getElementById('mahjongInputArea');
+const mahjongHandInput = document.getElementById('mahjongHandInput');
 
 profBtns.forEach(btn => {
   btn.addEventListener('click', () => {
@@ -171,6 +173,13 @@ profBtns.forEach(btn => {
     btn.classList.add('active');
     currentRole = btn.dataset.role;
     consoleBody.innerHTML = `<div class="log-line system">Switched to ${currentRole} workflow.</div>`;
+    
+    // Show/Hide Mahjong Input Area
+    if (currentRole === 'tw_mahjong') {
+      mahjongInputArea.classList.remove('hidden');
+    } else {
+      mahjongInputArea.classList.add('hidden');
+    }
   });
 });
 
@@ -228,16 +237,18 @@ startSimBtn.addEventListener('click', () => {
             conclusions: "裁判誤判因素分析摘要、重要變項排序、統計檢定結果、視覺化圖表建議"
           };
         } else if (currentRole === 'tw_mahjong') {
-          // Example: 16 tiles waiting for 3m, 6m (double ended wait)
-          const testHand = ['1m','2m','4m','5m','7m','8m','9m','9m','1p','2p','3p','1s','2s','3s','E','E'];
-          const waits = checkTenpai(testHand);
+          // Parse user input or fallback to testHand
+          const userInput = mahjongHandInput.value.trim().split(/\s+/);
+          const handToTest = userInput.length >= 16 ? userInput.slice(0, 16) : ['1m','2m','4m','5m','7m','8m','9m','9m','1p','2p','3p','1s','2s','3s','E','E'];
+          
+          const waits = checkTenpai(handToTest);
           dummyResult = {
             game: "Taiwanese Mahjong (台灣麻將)",
             status: waits.length > 0 ? "已聽牌 (Tenpai)" : "未聽牌",
-            current_hand: testHand.map(t => tileDisplayMap[t]).join(' '),
+            current_hand: handToTest.map(t => tileDisplayMap[t] || t).join(' '),
             winning_tiles: waits.map(t => tileDisplayMap[t]),
-            logic: "經由 Agent 模擬補入 34 種牌型後，發現補入上述牌張可組成 5 面子 + 1 眼睛結構。",
-            recommendation: "建議保留當前結構，優先打出無效孤張。"
+            logic: `經由 Agent 模擬補入 34 種牌型後，分析輸入的 16 張手牌，發現補入上述牌張可組成 5 面子 + 1 眼睛結構。`,
+            recommendation: waits.length > 0 ? "建議保留當前結構，優先打出無效孤張。" : "目前手牌尚未聽牌，請檢查是否有斷牌或不連續之結構。"
           };
         } else {
           dummyResult = {
