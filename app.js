@@ -86,6 +86,13 @@ function checkWin17(tiles) {
   const counts = {};
   tiles.forEach(t => counts[t] = (counts[t] || 0) + 1);
 
+  // Special Case: 嚦咕嚦咕 (Li Gu Li Gu) - 8 Pairs + 1 Single
+  let pairs = 0;
+  Object.values(counts).forEach(c => { pairs += Math.floor(c / 2); });
+  if (pairs === 8) {
+    return { isWinning: true, type: 'liguligu' };
+  }
+
   const tileTypes = Object.keys(counts);
   for (let i = 0; i < tileTypes.length; i++) {
     const pair = tileTypes[i];
@@ -94,7 +101,7 @@ function checkWin17(tiles) {
       remaining[pair] -= 2;
       const decomposition = { pair, melds: [] };
       if (getDecomposition(remaining, 5, decomposition.melds)) {
-        return { isWinning: true, decomposition };
+        return { isWinning: true, type: 'standard', decomposition };
       }
     }
   }
@@ -142,34 +149,41 @@ function checkTenpai16(hand16) {
   return waits;
 }
 
-function calculateTai(tiles, decomposition, context = { baseWinTai: true }) {
+function calculateTai(tiles, winResult, context = { baseWinTai: true }) {
   let totalTai = 0;
   const patterns = [];
   const counts = {};
   tiles.forEach(t => counts[t] = (counts[t] || 0) + 1);
+  const decomposition = winResult.decomposition;
+  const hasHonors = tiles.some(t => t.length === 1);
 
+  if (winResult.type === 'liguligu') {
+    patterns.push({ name: "嚦咕嚦咕", tai: 4, reason: "由 8 對牌組成之特殊牌型。" });
+    return { totalTai: 4, patterns };
+  }
+
+  // 基本胡 (1 Tai)
   if (context.baseWinTai) {
     totalTai += 1;
     patterns.push({ name: "基本胡", tai: 1, reason: "符合 5 面子 + 1 眼睛結構。" });
   }
 
-  // 碰碰胡 (4 Tai)
+  // 1. 碰碰胡 (4 Tai)
   const isAllPungs = decomposition.melds.every(m => m.type === 'triplet');
   if (isAllPungs) {
     totalTai += 4;
     patterns.push({ name: "碰碰胡", tai: 4, reason: "所有面子皆為刻子。" });
   }
 
-  // 平胡 (2 Tai) - 5組順子且無字牌 (簡單判定)
+  // 2. 平胡 (2 Tai) - 5組順子且無字牌
   const isAllSequences = decomposition.melds.every(m => m.type === 'sequence');
   if (isAllSequences && !hasHonors) {
     totalTai += 2;
-    patterns.push({ name: "平胡", tai: 2, reason: "由 5 組順子與 1 對將牌組成，且無字牌。" });
+    patterns.push({ name: "平胡", tai: 2, reason: "由 5 組順子組成，無字無花。" });
   }
 
-  // 清一色 (8 Tai) or 混一色 (4 Tai)
+  // 3. 清一色 (8 Tai) / 混一色 (4 Tai)
   const suites = new Set(tiles.filter(t => t.length === 2).map(t => t[1]));
-  const hasHonors = tiles.some(t => t.length === 1);
   if (suites.size === 1) {
     if (!hasHonors) {
       totalTai += 8;
@@ -180,14 +194,33 @@ function calculateTai(tiles, decomposition, context = { baseWinTai: true }) {
     }
   }
 
-  // 大三元 (8 Tai) or 小三元 (4 Tai)
+  // 4. 三元系列: 大三元 (8 Tai), 小三元 (4 Tai), 雙喜字 (2 Tai)
   const dragonCounts = [counts['Z'] || 0, counts['F'] || 0, counts['B'] || 0];
-  if (dragonCounts.every(c => c >= 3)) {
+  const dragonTriplets = dragonCounts.filter(c => c >= 3).length;
+  const dragonPairs = dragonCounts.filter(c => c === 2).length;
+
+  if (dragonTriplets === 3) {
     totalTai += 8;
     patterns.push({ name: "大三元", tai: 8, reason: "中、發、白皆為刻子。" });
-  } else if (dragonCounts.filter(c => c >= 3).length === 2 && dragonCounts.some(c => c === 2)) {
+  } else if (dragonTriplets === 2 && dragonPairs === 1) {
     totalTai += 4;
-    patterns.push({ name: "小三元", tai: 4, reason: "中、發、白其中兩組為刻子，一組為眼睛。" });
+    patterns.push({ name: "小三元", tai: 4, reason: "中發白兩組刻子一組眼睛。" });
+  } else if (dragonTriplets === 2) {
+    totalTai += 2;
+    patterns.push({ name: "雙喜字", tai: 2, reason: "擁有中、發、白其中兩組刻子。" });
+  }
+
+  // 5. 四喜系列: 大四喜 (16 Tai), 小四喜 (8 Tai)
+  const windCounts = [counts['E'] || 0, counts['S'] || 0, counts['W'] || 0, counts['N'] || 0];
+  const windTriplets = windCounts.filter(c => c >= 3).length;
+  const windPairs = windCounts.filter(c => c === 2).length;
+
+  if (windTriplets === 4) {
+    totalTai += 16;
+    patterns.push({ name: "大四喜", tai: 16, reason: "東、南、西、北皆為刻子。" });
+  } else if (windTriplets === 3 && windPairs === 1) {
+    totalTai += 8;
+    patterns.push({ name: "小四喜", tai: 8, reason: "東、南、西、北三組刻子一組眼睛。" });
   }
 
   return { totalTai, patterns };
@@ -218,15 +251,14 @@ function analyzeMahjong(input) {
   if (tiles.length === 17) {
     const winResult = checkWin17(tiles);
     if (winResult.isWinning) {
-      const taiResult = calculateTai(tiles, winResult.decomposition);
+      const taiResult = calculateTai(tiles, winResult);
       return {
         mode: "胡牌與台數分析 (17張)",
         status: "胡牌",
         is_winning_hand: true,
         current_tai: taiResult.totalTai,
         matched_patterns: taiResult.patterns,
-        decomposition: winResult.decomposition,
-        logic: "此手牌已形成 5 面子 + 1 眼睛，判定為胡牌。"
+        logic: "此手牌已形成合法胡牌結構 (含特殊牌型判定)。"
       };
     }
     const discardResult = recommendBestDiscard(tiles);
