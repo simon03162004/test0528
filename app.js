@@ -60,7 +60,78 @@ tiltCards.forEach(card => {
   });
 });
 
-// Simulator State Machine
+// --- Mahjong Logic Engine ---
+const ALL_TILES = [
+  '1m','2m','3m','4m','5m','6m','7m','8m','9m',
+  '1p','2p','3p','4p','5p','6p','7p','8p','9p',
+  '1s','2s','3s','4s','5s','6s','7s','8s','9s',
+  'E','S','W','N','Z','F','B' // East, South, West, North, Red, Green, White
+];
+
+function canWin(tiles) {
+  if (tiles.length !== 17) return false;
+  const counts = {};
+  tiles.forEach(t => counts[t] = (counts[t] || 0) + 1);
+
+  const tileTypes = Object.keys(counts);
+  for (let i = 0; i < tileTypes.length; i++) {
+    const pair = tileTypes[i];
+    if (counts[pair] >= 2) {
+      const remaining = { ...counts };
+      remaining[pair] -= 2;
+      if (canMeld(remaining, 5)) return true;
+    }
+  }
+  return false;
+}
+
+function canMeld(counts, needed) {
+  if (needed === 0) return true;
+  
+  const tile = ALL_TILES.find(t => counts[t] > 0);
+  if (!tile) return needed === 0;
+
+  // Try Triplet (Pong)
+  if (counts[tile] >= 3) {
+    counts[tile] -= 3;
+    if (canMeld(counts, needed - 1)) return true;
+    counts[tile] += 3;
+  }
+
+  // Try Sequence (Chow) - only for m, p, s
+  const num = parseInt(tile[0]);
+  const suite = tile[1];
+  if (suite && ['m', 'p', 's'].includes(suite) && num <= 7) {
+    const t2 = (num + 1) + suite;
+    const t3 = (num + 2) + suite;
+    if (counts[t2] > 0 && counts[t3] > 0) {
+      counts[tile]--; counts[t2]--; counts[t3]--;
+      if (canMeld(counts, needed - 1)) return true;
+      counts[tile]++; counts[t2]++; counts[t3]++;
+    }
+  }
+
+  return false;
+}
+
+function checkTenpai(hand16) {
+  const waits = [];
+  ALL_TILES.forEach(tile => {
+    if (canWin([...hand16, tile])) {
+      waits.push(tile);
+    }
+  });
+  return waits;
+}
+
+const tileDisplayMap = {
+  '1m': '1萬', '2m': '2萬', '3m': '3萬', '4m': '4萬', '5m': '5萬', '6m': '6萬', '7m': '7萬', '8m': '8萬', '9m': '9萬',
+  '1p': '1筒', '2p': '2筒', '3p': '3筒', '4p': '4筒', '5p': '5萬', '6p': '6筒', '7p': '7筒', '8p': '8筒', '9p': '9筒',
+  '1s': '1索', '2s': '2索', '3s': '3索', '4s': '4索', '5s': '5索', '6s': '6索', '7s': '7索', '8s': '8索', '9s': '9索',
+  'E': '東', 'S': '南', 'W': '西', 'N': '北', 'Z': '中', 'F': '發', 'B': '白'
+};
+
+// --- Simulator State Machine ---
 const workflows = {
   accountant: ['Parse Receipt', 'Categorize', 'Audit Tax', 'Generate Report'],
   lawyer: ['Read Case', 'Find Precedents', 'Draft Contract', 'Review Clauses'],
@@ -76,16 +147,12 @@ const workflows = {
     "Generate Final Baseball Analytics Report & Visualization"
   ],
   tw_mahjong: [
-    "Rule Agent: Initializing 16-tile Taiwanese Mahjong rule set...",
-    "Tile Agent: Parsing player hand (17 tiles)...",
-    "Win Agent: Testing 5 melds + 1 pair structure...",
-    "Win Agent: Pair selected -> [白白]",
-    "Win Agent: Found Meld [1萬 2萬 3萬]",
-    "Win Agent: Found Meld [3筒 4筒 5筒]",
-    "Win Agent: Found Meld [7索 8索 9索]",
-    "Win Agent: Found Meld [東東東]",
-    "Win Agent: Found Meld [5萬 5萬 5萬]",
-    "Explain Agent: Generating winner-friendly structure explanation..."
+    "Tile Agent: 正在讀取玩家 16 張手牌...",
+    "Rule Agent: 檢查台灣麻將 (16張制) 胡牌規則...",
+    "Logic Agent: 遍歷 34 種牌型進行模擬補牌...",
+    "Win Agent: 正在計算所有可能的聽牌組合...",
+    "Tenpai Agent: 發現聽牌組合，正在驗證面子結構...",
+    "Explain Agent: 彙整聽牌結果與結構說明..."
   ]
 };
 
@@ -139,7 +206,7 @@ startSimBtn.addEventListener('click', () => {
     if (currentStep < steps.length) {
       updateNodes(currentStep, steps.length);
       const action = steps[currentStep];
-      appendLog(`Agent analyzing: ${action}...`, 'thought');
+      appendLog(`Agent: ${action}`, 'thought');
       currentStep++;
     } else {
       clearInterval(simInterval);
@@ -161,21 +228,16 @@ startSimBtn.addEventListener('click', () => {
             conclusions: "裁判誤判因素分析摘要、重要變項排序、統計檢定結果、視覺化圖表建議"
           };
         } else if (currentRole === 'tw_mahjong') {
+          // Example: 16 tiles waiting for 3m, 6m (double ended wait)
+          const testHand = ['1m','2m','4m','5m','7m','8m','9m','9m','1p','2p','3p','1s','2s','3s','E','E'];
+          const waits = checkTenpai(testHand);
           dummyResult = {
             game: "Taiwanese Mahjong (台灣麻將)",
-            rule_set: "16-tile standard (胡牌 17 張)",
-            can_win: true,
-            structure: {
-              melds: [
-                "順子: 1萬 2萬 3萬",
-                "順子: 3筒 4筒 5筒",
-                "順子: 7索 8索 9索",
-                "刻子: 東 東 東",
-                "刻子: 5萬 5萬 5萬"
-              ],
-              pair: "眼睛: 白 白"
-            },
-            explanation: "此手牌完全符合台灣麻將「5 組面子 + 1 組眼睛」的胡牌結構，判定為可胡牌。"
+            status: waits.length > 0 ? "已聽牌 (Tenpai)" : "未聽牌",
+            current_hand: testHand.map(t => tileDisplayMap[t]).join(' '),
+            winning_tiles: waits.map(t => tileDisplayMap[t]),
+            logic: "經由 Agent 模擬補入 34 種牌型後，發現補入上述牌張可組成 5 面子 + 1 眼睛結構。",
+            recommendation: "建議保留當前結構，優先打出無效孤張。"
           };
         } else {
           dummyResult = {
