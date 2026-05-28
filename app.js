@@ -66,7 +66,15 @@ const workflows = {
   lawyer: ['Read Case', 'Find Precedents', 'Draft Contract', 'Review Clauses'],
   researcher: ['Define Topic', 'Scrape Arxiv', 'Filter Papers', 'Summarize', 'Extract Data', 'Synthesize', 'Format Ref', 'Write Abstract'],
   engineer: ['Discuss Spec', 'Write Code (Engineer)', 'Test (Heavy User)', 'Code Review (Inspector)'],
-  baseball_analyst: ['Scrape Statcast Data', 'Pitch Tunneling Analysis', 'Calculate Expected Stats (xWOBA)', 'Spray Chart Mapping', 'Identify Opponent Weakness', 'Final Strategy Delivery']
+  umpire_analysis: [
+    "Load CPBL Pitch-by-Pitch Data (2023-2024)",
+    "Define Ball-Strike Misjudgment Rules (K-Zone Mapping)",
+    "Calculate Misjudgment Rate by Count, Pitch Type, and Umpire",
+    "Run Chi-Square Tests for Statistical Significance",
+    "Build Logistic Regression / Random Forest Prediction Models",
+    "Inspect Sample Size, Variable Leakage, and Interpretation Risk",
+    "Generate Final Baseball Analytics Report & Visualization"
+  ]
 };
 
 let currentRole = 'accountant';
@@ -131,13 +139,24 @@ startSimBtn.addEventListener('click', () => {
       
       // Show Result Modal after 1.5s
       setTimeout(() => {
-        const dummyResult = {
-          role: currentRole,
-          status: 'success',
-          steps_executed: steps.length,
-          output: `Generated artifact for ${currentRole}`,
-          timestamp: new Date().toISOString()
-        };
+        let dummyResult;
+        if (currentRole === 'umpire_analysis') {
+          dummyResult = {
+            research_topic: "探討中華職棒 (CPBL) 裁判好壞球判決錯誤之影響因素",
+            data_source: "2023–2024 中華職棒逐球資料 (Pitch-by-Pitch)",
+            key_variables: ["Balls", "Strikes", "Outs", "TaggedPitchType", "Umpire", "APP_KZoneY/Z", "Zone"],
+            statistical_methods: ["誤判率百分比分析", "卡方檢定 (Chi-Square)", "羅吉斯迴歸 (Logistic Regression)", "隨機森林 (Random Forest)"],
+            conclusions: "裁判誤判因素分析摘要、重要變項排序、統計檢定結果、視覺化圖表建議"
+          };
+        } else {
+          dummyResult = {
+            role: currentRole,
+            status: 'success',
+            steps_executed: steps.length,
+            output: `Generated artifact for ${currentRole}`,
+            timestamp: new Date().toISOString()
+          };
+        }
         resultJson.textContent = JSON.stringify(dummyResult, null, 2);
         resultModal.classList.remove('hidden');
       }, 1500);
