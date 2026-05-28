@@ -65,7 +65,8 @@ const workflows = {
   accountant: ['Parse Receipt', 'Categorize', 'Audit Tax', 'Generate Report'],
   lawyer: ['Read Case', 'Find Precedents', 'Draft Contract', 'Review Clauses'],
   researcher: ['Define Topic', 'Scrape Arxiv', 'Filter Papers', 'Summarize', 'Extract Data', 'Synthesize', 'Format Ref', 'Write Abstract'],
-  engineer: ['Discuss Spec', 'Write Code (Engineer)', 'Test (Heavy User)', 'Code Review (Inspector)']
+  engineer: ['Discuss Spec', 'Write Code (Engineer)', 'Test (Heavy User)', 'Code Review (Inspector)'],
+  baseball_analyst: ['Scrape Statcast Data', 'Pitch Tunneling Analysis', 'Calculate Expected Stats (xWOBA)', 'Spray Chart Mapping', 'Identify Opponent Weakness', 'Final Strategy Delivery']
 };
 
 let currentRole = 'accountant';
