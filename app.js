@@ -74,6 +74,18 @@ const workflows = {
     "Build Logistic Regression / Random Forest Prediction Models",
     "Inspect Sample Size, Variable Leakage, and Interpretation Risk",
     "Generate Final Baseball Analytics Report & Visualization"
+  ],
+  tw_mahjong: [
+    "Rule Agent: Initializing 16-tile Taiwanese Mahjong rule set...",
+    "Tile Agent: Parsing player hand (17 tiles)...",
+    "Win Agent: Testing 5 melds + 1 pair structure...",
+    "Win Agent: Pair selected -> [白白]",
+    "Win Agent: Found Meld [1萬 2萬 3萬]",
+    "Win Agent: Found Meld [3筒 4筒 5筒]",
+    "Win Agent: Found Meld [7索 8索 9索]",
+    "Win Agent: Found Meld [東東東]",
+    "Win Agent: Found Meld [5萬 5萬 5萬]",
+    "Explain Agent: Generating winner-friendly structure explanation..."
   ]
 };
 
@@ -148,6 +160,23 @@ startSimBtn.addEventListener('click', () => {
             statistical_methods: ["誤判率百分比分析", "卡方檢定 (Chi-Square)", "羅吉斯迴歸 (Logistic Regression)", "隨機森林 (Random Forest)"],
             conclusions: "裁判誤判因素分析摘要、重要變項排序、統計檢定結果、視覺化圖表建議"
           };
+        } else if (currentRole === 'tw_mahjong') {
+          dummyResult = {
+            game: "Taiwanese Mahjong (台灣麻將)",
+            rule_set: "16-tile standard (胡牌 17 張)",
+            can_win: true,
+            structure: {
+              melds: [
+                "順子: 1萬 2萬 3萬",
+                "順子: 3筒 4筒 5筒",
+                "順子: 7索 8索 9索",
+                "刻子: 東 東 東",
+                "刻子: 5萬 5萬 5萬"
+              ],
+              pair: "眼睛: 白 白"
+            },
+            explanation: "此手牌完全符合台灣麻將「5 組面子 + 1 組眼睛」的胡牌結構，判定為可胡牌。"
+          };
         } else {
           dummyResult = {
             role: currentRole,
@@ -161,7 +190,7 @@ startSimBtn.addEventListener('click', () => {
         resultModal.classList.remove('hidden');
       }, 1500);
     }
-  }, 1200);
+  }, 1000);
 });
 
 closeModalBtn.addEventListener('click', () => {
