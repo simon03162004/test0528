@@ -227,23 +227,49 @@ function calculateTai(tiles, winResult, context = { baseWinTai: true }) {
 }
 
 function recommendBestDiscard(tiles17) {
-  let bestDiscard = null;
-  let maxWaits = -1;
-  let bestWaits = [];
-
+  const recommendations = [];
   const uniqueTiles = [...new Set(tiles17)];
+  
+  // Create a count map of the 17 tiles to know how many of each tile are already used
+  const handCounts = {};
+  tiles17.forEach(t => handCounts[t] = (handCounts[t] || 0) + 1);
+
   uniqueTiles.forEach(tile => {
     const tempHand = [...tiles17];
     const index = tempHand.indexOf(tile);
     tempHand.splice(index, 1);
+    
     const waits = checkTenpai16(tempHand);
-    if (waits.length > maxWaits) {
-      maxWaits = waits.length;
-      bestDiscard = tile;
-      bestWaits = waits;
+    if (waits.length > 0) {
+      // Calculate "Total Wait Count" (how many of these tiles are actually left in the pool)
+      // For simplicity, assume a full deck of 4 of each tile minus those in the current 17-tile hand
+      let totalWaitCount = 0;
+      const waitDetails = waits.map(w => {
+        const remainingInDeck = 4 - (handCounts[w] || 0);
+        totalWaitCount += Math.max(0, remainingInDeck);
+        return { tile: tileDisplayMap[w] || w, remaining: Math.max(0, remainingInDeck) };
+      });
+
+      recommendations.push({
+        discard: tileDisplayMap[tile] || tile,
+        raw_tile: tile,
+        waits: waits.map(w => tileDisplayMap[w] || w),
+        wait_details: waitDetails,
+        total_remaining_tiles: totalWaitCount,
+        unique_wait_types: waits.length
+      });
     }
   });
-  return { discard: bestDiscard, waits: bestWaits };
+
+  // Sort by unique_wait_types desc, then by total_remaining_tiles desc
+  recommendations.sort((a, b) => b.unique_wait_types - a.unique_wait_types || b.total_remaining_tiles - a.total_remaining_tiles);
+
+  return {
+    best_options: recommendations.slice(0, 3), // Show top 3 choices
+    logic: recommendations.length > 0 
+      ? `分析發現打出 ${recommendations[0].discard} 可聽最多種牌 (${recommendations[0].unique_wait_types} 種)，剩餘張數共 ${recommendations[0].total_remaining_tiles} 張。`
+      : "目前手牌結構較散，打出任一牌後皆無法進入聽牌狀態。"
+  };
 }
 
 function analyzeMahjong(input) {
@@ -261,13 +287,13 @@ function analyzeMahjong(input) {
         logic: "此手牌已形成合法胡牌結構 (含特殊牌型判定)。"
       };
     }
-    const discardResult = recommendBestDiscard(tiles);
+    const discardAdvice = recommendBestDiscard(tiles);
     return {
       mode: "拆牌與聽牌分析 (17張)",
       status: "未胡牌",
       is_winning_hand: false,
-      recommendation: discardResult,
-      logic: "目前 17 張不能胡，分析打哪張後聽牌張數最多。"
+      recommendation: discardAdvice,
+      logic: "目前 17 張不能胡，系統已計算出所有「打牌後能聽牌」的最佳路徑。"
     };
   } else if (tiles.length === 16) {
     const waits = checkTenpai16(tiles);
