@@ -1,0 +1,172 @@
+:root {
+  --bg-dark: #06040A;
+  --bg-dark-end: #0C081E;
+  --neon-purple: #9d4edd;
+  --neon-blue: #4361ee;
+  --neon-pink: #f72585;
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --text-main: #e0e0e0;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, var(--bg-dark), var(--bg-dark-end));
+  color: var(--text-main);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Glowing Orbs */
+.glow-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(130px);
+  z-index: -1;
+  opacity: 0.6;
+  animation: float 20s infinite alternate ease-in-out;
+}
+.orb-1 { width: 400px; height: 400px; background: var(--neon-purple); top: -100px; left: -100px; }
+.orb-2 { width: 300px; height: 300px; background: var(--neon-blue); bottom: 10%; right: -50px; animation-delay: -5s; }
+.orb-3 { width: 250px; height: 250px; background: var(--neon-pink); top: 40%; left: 30%; animation-delay: -10s; }
+
+@keyframes float {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(100px, 50px); }
+}
+
+/* Glassmorphism */
+.glass-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: rgba(10, 6, 20, 0.7);
+  backdrop-filter: blur(15px);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.logo { display: flex; align-items: center; gap: 0.5rem; font-weight: bold; font-size: 1.2rem; text-transform: uppercase; letter-spacing: 2px; }
+nav a { color: var(--text-main); text-decoration: none; margin-left: 1.5rem; font-size: 0.9rem; transition: color 0.3s; }
+nav a:hover { color: var(--neon-pink); }
+
+section { padding: 5rem 2rem; max-width: 1200px; margin: 0 auto; }
+.section-title { font-size: 2rem; margin-bottom: 2rem; text-align: center; text-shadow: 0 0 10px rgba(157, 78, 221, 0.5); }
+
+/* Hero */
+.hero-section { text-align: center; min-height: 70vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+.glitch-text { font-size: 4rem; font-weight: 900; background: linear-gradient(to right, var(--neon-pink), var(--neon-blue)); -webkit-background-clip: text; color: transparent; margin-bottom: 1rem; }
+.subtitle { font-size: 1.5rem; opacity: 0.8; margin-bottom: 3rem; }
+
+/* Buttons */
+.neon-btn {
+  background: transparent;
+  color: white;
+  border: 1px solid var(--neon-purple);
+  padding: 0.8rem 2rem;
+  font-size: 1.1rem;
+  border-radius: 30px;
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(157, 78, 221, 0.4);
+  transition: all 0.3s ease;
+}
+.neon-btn:hover {
+  background: var(--neon-purple);
+  box-shadow: 0 0 30px rgba(157, 78, 221, 0.8);
+  transform: translateY(-2px);
+}
+
+/* Cards & Tilt */
+.tilt-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(10px);
+  border: 1px solid transparent;
+  border-image: linear-gradient(45deg, var(--neon-purple), var(--neon-blue)) 1;
+  border-radius: 16px; /* border-image overrides radius, we use inner wrapper usually, but for simplicity here we simulate */
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  padding: 2rem;
+  transition: transform 0.1s ease, box-shadow 0.3s;
+  transform-style: preserve-3d;
+}
+.tilt-card:hover {
+  box-shadow: 0 0 20px rgba(67, 97, 238, 0.5);
+}
+/* Re-apply border radius properly since border-image breaks it */
+.tilt-card { border: 1px solid var(--glass-border); border-radius: 16px; position: relative; overflow: hidden; }
+.tilt-card::before { content: ""; position: absolute; inset: 0; padding: 1px; border-radius: 16px; background: linear-gradient(45deg, var(--neon-purple), transparent, var(--neon-blue)); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; z-index: -1; }
+
+/* Calculator */
+.slider-group { margin-bottom: 1.5rem; }
+.slider-group label { display: block; margin-bottom: 0.5rem; }
+.slider-group input[type="range"] { width: 100%; accent-color: var(--neon-pink); }
+.results { display: flex; gap: 2rem; margin-top: 2rem; justify-content: center; }
+.result-box { flex: 1; background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 8px; text-align: center; }
+.danger-text { color: #ff4d4d; font-weight: bold; font-size: 1.5rem; }
+.success-text { color: #00e676; font-weight: bold; font-size: 1.5rem; text-shadow: 0 0 10px rgba(0, 230, 118, 0.5); }
+.savings-highlight { text-align: center; margin-top: 1.5rem; font-size: 1.2rem; color: var(--neon-pink); font-weight: bold; }
+
+/* Simulator */
+.professions { display: flex; justify-content: center; gap: 1rem; margin-bottom: 2rem; }
+.prof-btn { background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: white; padding: 0.5rem 1.5rem; border-radius: 20px; cursor: pointer; transition: 0.3s; }
+.prof-btn.active, .prof-btn:hover { background: rgba(157, 78, 221, 0.3); border-color: var(--neon-purple); }
+.sim-container { display: grid; grid-template-columns: 3fr 2fr; gap: 2rem; height: 400px; }
+.topology-area { position: relative; display: flex; flex-direction: column; justify-content: space-between; }
+.sim-nodes { position: absolute; top: 0; left: 0; right: 0; bottom: 60px; pointer-events: none; }
+.sim-controls { text-align: center; margin-top: auto; z-index: 2; }
+
+/* SVG Animation */
+.laser-paths { position: absolute; top: 0; left: 0; z-index: 1; pointer-events: none; opacity: 0.3; }
+.neon-path { fill: none; stroke: var(--neon-blue); stroke-width: 2; stroke-dasharray: 10 10; animation: dash 2s linear infinite; }
+@keyframes dash { to { stroke-dashoffset: -20; } }
+.node { fill: var(--neon-purple); filter: drop-shadow(0 0 5px var(--neon-purple)); }
+.node.active { fill: var(--neon-pink); filter: drop-shadow(0 0 10px var(--neon-pink)); animation: pulse 1s infinite alternate; }
+@keyframes pulse { from { r: 5; } to { r: 8; } }
+
+/* Live Console */
+.live-console { display: flex; flex-direction: column; background: #0b0c10; font-family: 'Courier New', Courier, monospace; }
+.console-header { background: #1f2833; padding: 0.5rem 1rem; border-radius: 8px 8px 0 0; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.dot.red { background: #ff5f56; }
+.dot.yellow { background: #ffbd2e; }
+.dot.green { background: #27c93f; }
+.console-body { flex: 1; padding: 1rem; overflow-y: auto; color: #a9b7c6; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.9rem; }
+.log-line.thought { color: #d4a5ff; font-style: italic; text-shadow: 0 0 5px rgba(212, 165, 255, 0.5); animation: fadeIn 0.3s; }
+.log-line.system { color: #4361ee; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Result Modal */
+.result-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; justify-content: center; align-items: center; opacity: 1; transition: opacity 0.3s; }
+.result-modal.hidden { opacity: 0; pointer-events: none; }
+.modal-content { background: rgba(20, 15, 30, 0.9); padding: 2rem; border-radius: 16px; max-width: 500px; width: 90%; position: relative; max-height: 80vh; overflow-y: auto; }
+.close-btn { position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+#resultJson { background: #000; padding: 1rem; border-radius: 8px; color: #00e676; margin-top: 1rem; white-space: pre-wrap; font-family: monospace; }
+
+/* Pillars & Resources */
+.pillars { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 3rem; }
+.pillar-card h4 { color: var(--neon-blue); margin-bottom: 0.5rem; }
+.code-resource { padding: 0 !important; }
+.code-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: rgba(0,0,0,0.5); border-radius: 16px 16px 0 0; }
+.copy-btn { display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.1); border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; transition: 0.2s; }
+.copy-btn:hover { background: rgba(255,255,255,0.2); }
+#promptCode { padding: 1rem; overflow-x: auto; color: #f8f8f2; }
+
+footer { text-align: center; padding: 2rem; border-top: 1px solid var(--glass-border); margin-top: 3rem; display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+.external-link { display: flex; align-items: center; gap: 0.5rem; color: var(--neon-pink); text-decoration: none; }
+.external-link:hover { text-decoration: underline; }
+
+@media (max-width: 768px) {
+  .sim-container { grid-template-columns: 1fr; height: auto; }
+  .topology-area { height: 300px; }
+  .live-console { height: 300px; }
+}

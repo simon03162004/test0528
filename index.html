@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orchestra Agent System | Dark Magic AI</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Background Glowing Orbs -->
+  <div class="glow-orb orb-1"></div>
+  <div class="glow-orb orb-2"></div>
+  <div class="glow-orb orb-3"></div>
+
+  <header class="glass-nav">
+    <div class="logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+        <polyline points="2 17 12 22 22 17"></polyline>
+        <polyline points="2 12 12 17 22 12"></polyline>
+      </svg>
+      Orchestra
+    </div>
+    <nav>
+      <a href="#hero">首頁</a>
+      <a href="#calculator">痛點計算器</a>
+      <a href="#simulator">工作流模擬</a>
+      <a href="#resources">Prompt 資源</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Hero Section -->
+    <section id="hero" class="hero-section">
+      <h1 class="glitch-text" data-text="Orchestrate the Future.">Orchestrate the Future.</h1>
+      <p class="subtitle">從一問一答，到多 Agent 協奏曲。</p>
+      <div class="hero-actions">
+        <button class="neon-btn" onclick="document.getElementById('simulator').scrollIntoView({behavior: 'smooth'})">啟動模擬</button>
+      </div>
+    </section>
+
+    <!-- Pain Point Calculator -->
+    <section id="calculator" class="calc-section">
+      <h2 class="section-title">工時與成本計算器</h2>
+      <div class="calc-card tilt-card">
+        <div class="slider-group">
+          <label for="taskCount">每月重複性任務數量: <span id="taskCountVal">50</span></label>
+          <input type="range" id="taskCount" min="10" max="500" value="50">
+        </div>
+        <div class="slider-group">
+          <label for="hourlyRate">平均人工時薪 (USD): <span id="hourlyRateVal">30</span></label>
+          <input type="range" id="hourlyRate" min="10" max="200" value="30">
+        </div>
+        <div class="results">
+          <div class="result-box">
+            <h3>人工耗時</h3>
+            <p><span id="humanHours" class="danger-text">150</span> 小時</p>
+            <p>成本: $<span id="humanCost">4500</span></p>
+          </div>
+          <div class="result-box AI-box">
+            <h3>Orchestra Agent 耗時</h3>
+            <p><span id="agentHours" class="success-text">2</span> 小時</p>
+            <p>成本: $<span id="agentCost">60</span></p>
+          </div>
+        </div>
+        <div class="savings-highlight">
+          節省 <span id="savedTime">148</span> 小時 | 降低 <span id="savedCost">4440</span> USD 成本
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Workflow Simulator -->
+    <section id="simulator" class="simulator-section">
+      <h2 class="section-title">互動式工作流模擬器</h2>
+      <div class="professions">
+        <button class="prof-btn active" data-role="accountant">會計師</button>
+        <button class="prof-btn" data-role="lawyer">律師</button>
+        <button class="prof-btn" data-role="researcher">研究員</button>
+        <button class="prof-btn" data-role="engineer">工程師</button>
+      </div>
+      
+      <div class="sim-container">
+        <!-- Topology Visualization -->
+        <div class="topology-area tilt-card">
+          <svg class="laser-paths" width="100%" height="100%" preserveAspectRatio="none">
+            <!-- Dynamic paths will be injected or styled here -->
+            <path d="M 50 150 C 150 150, 150 50, 250 50" class="neon-path" id="path1"/>
+            <path d="M 250 50 C 350 50, 350 250, 450 250" class="neon-path" id="path2"/>
+            <path d="M 50 150 C 150 150, 150 250, 450 250" class="neon-path" id="path3"/>
+            <circle cx="50" cy="150" r="5" class="node" id="node-start"/>
+            <circle cx="250" cy="50" r="5" class="node" id="node-mid1"/>
+            <circle cx="450" cy="250" r="5" class="node" id="node-end"/>
+          </svg>
+          <div class="sim-nodes" id="simNodes">
+            <!-- Nodes injected by JS -->
+          </div>
+          <div class="sim-controls">
+            <button id="startSimBtn" class="neon-btn">開始模擬流程</button>
+          </div>
+        </div>
+
+        <!-- Live Console -->
+        <div class="live-console tilt-card">
+          <div class="console-header">
+            <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+            Agent Thoughts 🧠
+          </div>
+          <div class="console-body" id="consoleBody">
+            <div class="log-line">Waiting for simulation to start...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Result Card Modal (Hidden by default) -->
+      <div id="resultModal" class="result-modal hidden">
+        <div class="modal-content glass-card">
+          <button id="closeModalBtn" class="close-btn">&times;</button>
+          <h3>✅ 執行完成</h3>
+          <pre id="resultJson">{}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Structural Decryption & Resources -->
+    <section id="resources" class="resources-section">
+      <h2 class="section-title">4 支柱科普 & 資源</h2>
+      <div class="pillars">
+        <div class="pillar-card tilt-card">
+          <h4>1. 憲法驅動 (Rules)</h4>
+          <p>開局讀取 rule.md，確保輸出穩定與不偏題。</p>
+        </div>
+        <div class="pillar-card tilt-card">
+          <h4>2. 歷史記憶 (Logs)</h4>
+          <p>持續寫入 history.md，Agent 永不失憶。</p>
+        </div>
+        <div class="pillar-card tilt-card">
+          <h4>3. 角色分工 (Roles)</h4>
+          <p>PM 規劃、Engineer 實作、Inspector 除錯。</p>
+        </div>
+        <div class="pillar-card tilt-card">
+          <h4>4. 工具賦能 (Tools)</h4>
+          <p>限制唯有 Engineer 具備檔案寫入權限，確保安全。</p>
+        </div>
+      </div>
+
+      <div class="code-resource tilt-card">
+        <div class="code-header">
+          <span>System Architecture & Prompt Template</span>
+          <button id="copyPromptBtn" class="copy-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            一鍵複製
+          </button>
+        </div>
+        <pre><code id="promptCode">
+# 系統設計架構圖
+.agent/
+├── agent/ (PM, Engineer, Inspector, Heavy User)
+├── rules/ (orchestration.md, rule.md, task.md)
+└── logs/  (history.md, functions.md, debug.md)
+
+# Prompt 範本
+You are the Orchestrator. Please read .agent/rules/rule.md first.
+1. Assign task to PM to analyze requirements.
+2. Delegate implementation to Engineer.
+3. Pass to Inspector for review.
+4. Finalize and update logs.
+        </code></pre>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Made with ❤️ by Orchestra System</p>
+    <a href="https://grenade.tw/blog/claude-skills-github-2026/" target="_blank" class="external-link">
+      Learn more about Agent Skills 
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+    </a>
+  </footer>
+  <script src="app.js"></script>
+</body>
+</html>
