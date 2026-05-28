@@ -124,9 +124,60 @@ function checkTenpai(hand16) {
   return waits;
 }
 
+// --- Scoring and Advice Engine ---
+function calculateTai(tiles) {
+  if (!canWin(tiles)) return 0;
+  let tai = 0;
+  const counts = {};
+  tiles.forEach(t => counts[t] = (counts[t] || 0) + 1);
+
+  // Simple Tai Examples (Taiwanese Mahjong)
+  // 1. All Triplets (碰碰胡) - 4 Tai
+  let triplets = 0;
+  Object.values(counts).forEach(c => { if (c >= 3) triplets++; });
+  if (triplets === 5) tai += 4;
+
+  // 2. Full Flush (清一色) - 8 Tai
+  const suites = new Set(tiles.filter(t => t.length === 2).map(t => t[1]));
+  const hasHonors = tiles.some(t => t.length === 1);
+  if (suites.size === 1 && !hasHonors) tai += 8;
+
+  // 3. Mixed Terminals (混一色) - 4 Tai
+  if (suites.size === 1 && hasHonors) tai += 4;
+
+  // 4. Little Three Dragons (小三元) - 4 Tai
+  if (counts['Z'] >= 2 && counts['F'] >= 2 && counts['B'] >= 2) {
+    if (counts['Z'] >= 3 || counts['F'] >= 3 || counts['B'] >= 3) tai += 4;
+  }
+  
+  return tai || 1; // Default 1 Tai for simple win (平胡 not fully checked here)
+}
+
+function getDiscardAdvice(hand17) {
+  let bestDiscard = null;
+  let maxWaits = -1;
+  let bestWaits = [];
+
+  const uniqueTiles = [...new Set(hand17)];
+  uniqueTiles.forEach(tile => {
+    const tempHand = [...hand17];
+    const index = tempHand.indexOf(tile);
+    tempHand.splice(index, 1);
+    
+    const waits = checkTenpai(tempHand);
+    if (waits.length > maxWaits) {
+      maxWaits = waits.length;
+      bestDiscard = tile;
+      bestWaits = waits;
+    }
+  });
+
+  return { discard: bestDiscard, waits: bestWaits };
+}
+
 const tileDisplayMap = {
   '1m': '1萬', '2m': '2萬', '3m': '3萬', '4m': '4萬', '5m': '5萬', '6m': '6萬', '7m': '7萬', '8m': '8萬', '9m': '9萬',
-  '1p': '1筒', '2p': '2筒', '3p': '3筒', '4p': '4筒', '5p': '5萬', '6p': '6筒', '7p': '7筒', '8p': '8筒', '9p': '9筒',
+  '1p': '1筒', '2p': '2筒', '3p': '3筒', '4p': '4筒', '5p': '5筒', '6p': '6筒', '7p': '7筒', '8p': '8筒', '9p': '9筒',
   '1s': '1索', '2s': '2索', '3s': '3索', '4s': '4索', '5s': '5索', '6s': '6索', '7s': '7索', '8s': '8索', '9s': '9索',
   'E': '東', 'S': '南', 'W': '西', 'N': '北', 'Z': '中', 'F': '發', 'B': '白'
 };
@@ -147,12 +198,11 @@ const workflows = {
     "Generate Final Baseball Analytics Report & Visualization"
   ],
   tw_mahjong: [
-    "Tile Agent: 正在讀取玩家 16 張手牌...",
-    "Rule Agent: 檢查台灣麻將 (16張制) 胡牌規則...",
-    "Logic Agent: 遍歷 34 種牌型進行模擬補牌...",
-    "Win Agent: 正在計算所有可能的聽牌組合...",
-    "Tenpai Agent: 發現聽牌組合，正在驗證面子結構...",
-    "Explain Agent: 彙整聽牌結果與結構說明..."
+    "Tile Agent: 正在掃描手牌張數與組成...",
+    "Rule Agent: 檢索台灣麻將核心規則憲法...",
+    "Logic Agent: 啟動分支運算 (聽牌搜尋 vs 捨牌台數分析)...",
+    "Strategy Agent: 正在計算最佳捨牌勝率與台數潛力...",
+    "Explain Agent: 彙整最終策略報告與台數清單..."
   ]
 };
 
@@ -237,19 +287,41 @@ startSimBtn.addEventListener('click', () => {
             conclusions: "裁判誤判因素分析摘要、重要變項排序、統計檢定結果、視覺化圖表建議"
           };
         } else if (currentRole === 'tw_mahjong') {
-          // Parse user input or fallback to testHand
           const userInput = mahjongHandInput.value.trim().split(/\s+/);
-          const handToTest = userInput.length >= 16 ? userInput.slice(0, 16) : ['1m','2m','4m','5m','7m','8m','9m','9m','1p','2p','3p','1s','2s','3s','E','E'];
           
-          const waits = checkTenpai(handToTest);
-          dummyResult = {
-            game: "Taiwanese Mahjong (台灣麻將)",
-            status: waits.length > 0 ? "已聽牌 (Tenpai)" : "未聽牌",
-            current_hand: handToTest.map(t => tileDisplayMap[t] || t).join(' '),
-            winning_tiles: waits.map(t => tileDisplayMap[t]),
-            logic: `經由 Agent 模擬補入 34 種牌型後，分析輸入的 16 張手牌，發現補入上述牌張可組成 5 面子 + 1 眼睛結構。`,
-            recommendation: waits.length > 0 ? "建議保留當前結構，優先打出無效孤張。" : "目前手牌尚未聽牌，請檢查是否有斷牌或不連續之結構。"
-          };
+          if (userInput.length === 16) {
+            // Tenpai Mode
+            const waits = checkTenpai(userInput);
+            dummyResult = {
+              mode: "聽牌分析 (16張)",
+              current_hand: userInput.map(t => tileDisplayMap[t] || t).join(' '),
+              status: waits.length > 0 ? "已聽牌" : "尚未聽牌",
+              winning_tiles: waits.map(t => tileDisplayMap[t]),
+              advice: waits.length > 0 ? "目前已進入聽牌狀態，請等待胡牌。" : "建議重新整理手牌結構，尋找進入聽牌的機會。"
+            };
+          } else if (userInput.length === 17) {
+            // Scoring & Discard Mode
+            const canWinHand = canWin(userInput);
+            const tai = calculateTai(userInput);
+            const advice = getDiscardAdvice(userInput);
+            
+            dummyResult = {
+              mode: "捨牌與台數分析 (17張)",
+              current_hand: userInput.map(t => tileDisplayMap[t] || t).join(' '),
+              is_winning_hand: canWinHand,
+              current_tai: canWinHand ? tai : "尚未胡牌",
+              recommendation: {
+                discard_tile: tileDisplayMap[advice.discard] || advice.discard,
+                results_in_waits: advice.waits.map(t => tileDisplayMap[t]),
+                logic: `打出 ${tileDisplayMap[advice.discard] || advice.discard} 後，將聽 ${advice.waits.length} 種牌。`
+              }
+            };
+          } else {
+            dummyResult = {
+              error: "張數不正確",
+              message: "請輸入 16 張（分析聽牌）或 17 張（分析捨牌與台數）手牌。"
+            };
+          }
         } else {
           dummyResult = {
             role: currentRole,
